@@ -1,11 +1,15 @@
 
-import { useState } from "react";
-import { CreditCard, Truck, Sparkles } from "lucide-react";
+import { useState, ChangeEvent } from "react";
+import { CreditCard, Truck, Sparkles, Upload, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const Donate = () => {
   const [donationType, setDonationType] = useState<"money" | "items" | "services">("money");
   const { toast } = useToast();
+  const [itemImages, setItemImages] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -14,6 +18,39 @@ const Donate = () => {
       description: "We'll be in touch with next steps.",
       variant: "default",
     });
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    
+    const newFiles: File[] = [];
+    const newPreviewUrls: string[] = [];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith('image/')) {
+        newFiles.push(file);
+        newPreviewUrls.push(URL.createObjectURL(file));
+      }
+    }
+    
+    setItemImages([...itemImages, ...newFiles]);
+    setPreviewUrls([...previewUrls, ...newPreviewUrls]);
+  };
+
+  const removeImage = (index: number) => {
+    const updatedImages = [...itemImages];
+    const updatedPreviews = [...previewUrls];
+    
+    // Revoke object URL to prevent memory leaks
+    URL.revokeObjectURL(updatedPreviews[index]);
+    
+    updatedImages.splice(index, 1);
+    updatedPreviews.splice(index, 1);
+    
+    setItemImages(updatedImages);
+    setPreviewUrls(updatedPreviews);
   };
 
   return (
@@ -216,6 +253,65 @@ const Donate = () => {
                   placeholder="Please describe the items you wish to donate"
                   required
                 ></textarea>
+              </div>
+
+              {/* New Image Upload Section */}
+              <div>
+                <label className="form-label">Item Images</label>
+                <div className="border-2 border-dashed border-empowerkind-purple/30 rounded-lg p-6 bg-empowerkind-lightPurple/10">
+                  <div className="text-center">
+                    <Upload className="mx-auto h-12 w-12 text-empowerkind-purple/60" />
+                    <h3 className="mt-2 text-sm font-semibold text-empowerkind-darkPurple">
+                      Add photos of your item
+                    </h3>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Upload up to 5 images (PNG, JPG, JPEG up to 10MB)
+                    </p>
+                    <div className="mt-4">
+                      <Input
+                        id="itemImages"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={handleFileChange}
+                        disabled={itemImages.length >= 5}
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        className="bg-white hover:bg-empowerkind-lightPurple/20"
+                        onClick={() => document.getElementById('itemImages')?.click()}
+                        disabled={itemImages.length >= 5}
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Select Images
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Image Previews */}
+                  {previewUrls.length > 0 && (
+                    <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {previewUrls.map((url, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={url}
+                            alt={`Item preview ${index + 1}`}
+                            className="h-32 w-full object-cover rounded-md"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-80 hover:opacity-100"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>
